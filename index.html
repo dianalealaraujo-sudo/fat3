@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Indicadores de Faturamento Hospitalar</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        medical: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 antialiased bg-slate-50/50 min-h-screen flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <!-- Title & Status -->
+                <div class="flex items-center space-x-3">
+                    <div class="p-2.5 bg-medical-50 text-medical-600 rounded-xl border border-medical-100">
+                        <i data-lucide="activity" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                            Gestão de Faturamento Hospitalar
+                        </h1>
+                        <p class="text-xs sm:text-sm text-slate-500 flex items-center gap-2 mt-0.5">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                                Base Atualizada
+                            </span>
+                            <span>•</span>
+                            <span>9 Registros Consolidados</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Global Action / Quick Info -->
+                <div class="flex items-center gap-3">
+                    <button onclick="exportData()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-medical-500">
+                        <i data-lucide="download" class="w-4 h-4 mr-2 text-slate-500"></i>
+                        Exportar Relatório
+                    </button>
+                    <div class="hidden lg:flex items-center pl-3 border-l border-slate-200">
+                        <div class="text-right">
+                            <p class="text-xs text-slate-500">Período de Análise</p>
+                            <p class="text-xs font-semibold text-slate-700">Consolidado Geral</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        <!-- Controls & Filters Section -->
+        <section class="glass-card rounded-2xl p-5 shadow-sm">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div class="flex items-center gap-2 text-slate-700 font-semibold text-sm">
+                    <i data-lucide="filter" class="w-4 h-4 text-medical-600"></i>
+                    <span>Filtros Dinâmicos</span>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 lg:max-w-3xl">
+                    <!-- Hospital Filter -->
+                    <div>
+                        <label for="filterHospital" class="block text-xs font-medium text-slate-500 mb-1">Filtrar por Unidade</label>
+                        <select id="filterHospital" onchange="applyFilters()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-medical-500 transition-all">
+                            <option value="ALL">Todos os Hospitais (5)</option>
+                            <option value="Hospital Sul">Hospital Sul</option>
+                            <option value="Hospital Leste">Hospital Leste</option>
+                            <option value="Hospital Sudeste">Hospital Sudeste</option>
+                            <option value="Hospital Norte">Hospital Norte</option>
+                            <option value="Hospital Centro">Hospital Centro</option>
+                        </select>
+                    </div>
+
+                    <!-- Convenio Filter -->
+                    <div>
+                        <label for="filterConvenio" class="block text-xs font-medium text-slate-500 mb-1">Filtrar por Convênio</label>
+                        <select id="filterConvenio" onchange="applyFilters()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-medical-500 transition-all">
+                            <option value="ALL">Todos os Convênios</option>
+                            <option value="IPASGO">IPASGO</option>
+                            <option value="UNIMED">UNIMED</option>
+                        </select>
+                    </div>
+
+                    <!-- Reset Button -->
+                    <div class="flex items-end">
+                        <button onclick="resetFilters()" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-slate-200 text-sm font-medium rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4 mr-2"></i>
+                            Limpar Filtros
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Key Metrics Cards -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <!-- Card 1: Total Faturado -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110"></div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Faturado</span>
+                    <div class="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                        <i data-lucide="dollar-sign" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h3 id="kpiFaturado" class="text-2xl sm:text-3xl font-extrabold text-slate-900">R$ 126.155,33</h3>
+                    <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                        <span id="kpiQtdRegistros">9 lançamentos na base</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Card 2: Total Recebido -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110"></div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Recebido</span>
+                    <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h3 id="kpiRecebido" class="text-2xl sm:text-3xl font-extrabold text-slate-900">R$ 94.752,54</h3>
+                    <div class="mt-1 flex items-center">
+                        <span id="badgeRecebido" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800">
+                            75.11%
+                        </span>
+                        <span class="text-xs text-slate-500 ml-2">do valor faturado</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Total Glosado -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110"></div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Glosado</span>
+                    <div class="p-2.5 bg-rose-50 text-rose-600 rounded-xl">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h3 id="kpiGlosado" class="text-2xl sm:text-3xl font-extrabold text-slate-900">R$ 31.402,79</h3>
+                    <div class="mt-1 flex items-center">
+                        <span id="badgeGlosa" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800">
+                            24.89%
+                        </span>
+                        <span class="text-xs text-slate-500 ml-2">taxa de glosa</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: Eficiência Hospitalar -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110"></div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Taxa de Liquidação</span>
+                    <div class="p-2.5 bg-purple-50 text-purple-600 rounded-xl">
+                        <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h3 id="kpiEficiencia" class="text-2xl sm:text-3xl font-extrabold text-slate-900">75.1%</h3>
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-200 rounded-full h-2 mt-3 overflow-hidden flex">
+                        <div id="barEficiencia" class="bg-emerald-500 h-2 rounded-full" style="width: 75.11%"></div>
+                        <div id="barGlosa" class="bg-rose-500 h-2" style="width: 24.89%"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                        <span>Recebido</span>
+                        <span>Glosa</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Grid -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Chart 1: Comparativo por Hospital (2 Columns width) -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm lg:col-span-2 flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5 text-medical-600"></i>
+                            Faturamento e Liquidação por Hospital
+                        </h2>
+                        <p class="text-xs text-slate-500">Valores faturados, recebidos e glosados por unidade</p>
+                    </div>
+                </div>
+                <div class="relative flex-1 min-h-[300px]">
+                    <canvas id="chartHospital"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Convênios (1 Column width) -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="w-5 h-5 text-medical-600"></i>
+                            Distribuição por Convênio
+                        </h2>
+                        <p class="text-xs text-slate-500">Proporção de faturamento entre IPASGO e UNIMED</p>
+                    </div>
+                </div>
+                <div class="relative flex-1 flex items-center justify-center min-h-[260px]">
+                    <canvas id="chartConvenio"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: Taxa de Glosa por Hospital (Full Width or Horizontal Bar) -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm lg:col-span-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="shield-alert" class="w-5 h-5 text-rose-600"></i>
+                            Índice de Glosa Hospitalar (%)
+                        </h2>
+                        <p class="text-xs text-slate-500">Análise crítica de divergências financeiras por unidade hospitalar</p>
+                    </div>
+                    <div id="alertSudesteBadge" class="inline-flex items-center px-3 py-1 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-lg">
+                        <i data-lucide="alert-circle" class="w-4 h-4 mr-1.5 text-rose-600"></i>
+                        Atenção: Hosp. Sudeste com 100% de Glosa
+                    </div>
+                </div>
+                <div class="relative h-[220px]">
+                    <canvas id="chartGlosaRate"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Table Section -->
+        <section class="glass-card rounded-2xl shadow-sm overflow-hidden">
+            <!-- Table Header / Search -->
+            <div class="p-5 border-b border-slate-200 bg-white/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="table" class="w-5 h-5 text-medical-600"></i>
+                        Lançamentos Detalhados
+                    </h2>
+                    <p class="text-xs text-slate-500">Registros consolidados extraídos da base do sistema</p>
+                </div>
+                
+                <div class="relative w-full sm:w-64">
+                    <input type="text" id="tableSearch" onkeyup="filterTable()" placeholder="Buscar hospital, convênio..." class="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-4 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-medical-500">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100/70 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                            <th class="py-3.5 px-4">ID</th>
+                            <th class="py-3.5 px-4">Hospital</th>
+                            <th class="py-3.5 px-4">Convênio</th>
+                            <th class="py-3.5 px-4 text-right">Faturado (R$)</th>
+                            <th class="py-3.5 px-4 text-right">Recebido (R$)</th>
+                            <th class="py-3.5 px-4 text-right">Glosado (R$)</th>
+                            <th class="py-3.5 px-4 text-center">% Glosa</th>
+                            <th class="py-3.5 px-4 text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-200 text-sm font-medium text-slate-700">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Footer Stats -->
+            <div class="p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2">
+                <span id="tableSummaryText">Exibindo 9 de 9 lançamentos</span>
+                <span class="font-semibold text-slate-700">Valores auditados com base nos registros do sistema</span>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500">
+            Painel de Indicadores de Faturamento Hospitalar • Sistema Integrado de Auditoria Médica & Financeira
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Data derived directly from provided Excel cleaned base
+        const rawData = [
+            { id: 1, hospital: "Hospital Sul", convenio: "IPASGO", faturado: 21988.625, recebido: 21988.625, glosado: 0.00 },
+            { id: 2, hospital: "Hospital Sul", convenio: "IPASGO", faturado: 21988.625, recebido: 21988.625, glosado: 0.00 },
+            { id: 3, hospital: "Hospital Leste", convenio: "UNIMED", faturado: 16072.64, recebido: 16072.64, glosado: 0.00 },
+            { id: 4, hospital: "Hospital Leste", convenio: "UNIMED", faturado: 16072.64, recebido: 16072.64, glosado: 0.00 },
+            { id: 5, hospital: "Hospital Sudeste", convenio: "UNIMED", faturado: 15498.21, recebido: 0.00, glosado: 15498.21 },
+            { id: 6, hospital: "Hospital Sudeste", convenio: "UNIMED", faturado: 15498.21, recebido: 0.00, glosado: 15498.21 },
+            { id: 7, hospital: "Hospital Norte", convenio: "IPASGO", faturado: 12677.25, recebido: 12677.25, glosado: 0.00 },
+            { id: 8, hospital: "Hospital Centro", convenio: "IPASGO", faturado: 3952.76, recebido: 3952.76, glosado: 0.00 },
+            { id: 9, hospital: "Hospital Centro", convenio: "UNIMED", faturado: 2406.37, recebido: 2000.00, glosado: 406.37 }
+        ];
+
+        let filteredData = [...rawData];
+
+        // Chart instances
+        let chartHospitalInstance = null;
+        let chartConvenioInstance = null;
+        let chartGlosaRateInstance = null;
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderDashboard();
+        });
+
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+        }
+
+        function formatPercent(val) {
+            return val.toFixed(2).replace('.', ',') + '%';
+        }
+
+        function applyFilters() {
+            const selectedHospital = document.getElementById('filterHospital').value;
+            const selectedConvenio = document.getElementById('filterConvenio').value;
+
+            filteredData = rawData.filter(item => {
+                const matchHospital = selectedHospital === 'ALL' || item.hospital === selectedHospital;
+                const matchConvenio = selectedConvenio === 'ALL' || item.convenio === selectedConvenio;
+                return matchHospital && matchConvenio;
+            });
+
+            renderDashboard();
+        }
+
+        function resetFilters() {
+            document.getElementById('filterHospital').value = 'ALL';
+            document.getElementById('filterConvenio').value = 'ALL';
+            document.getElementById('tableSearch').value = '';
+            filteredData = [...rawData];
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            updateKPIs();
+            renderCharts();
+            renderTable();
+        }
+
+        // 1. Update KPIs
+        function updateKPIs() {
+            const totalFaturado = filteredData.reduce((acc, curr) => acc + curr.faturado, 0);
+            const totalRecebido = filteredData.reduce((acc, curr) => acc + curr.recebido, 0);
+            const totalGlosado = filteredData.reduce((acc, curr) => acc + curr.glosado, 0);
+            const count = filteredData.length;
+
+            const percRecebido = totalFaturado > 0 ? (totalRecebido / totalFaturado) * 100 : 0;
+            const percGlosa = totalFaturado > 0 ? (totalGlosado / totalFaturado) * 100 : 0;
+
+            document.getElementById('kpiFaturado').innerText = formatCurrency(totalFaturado);
+            document.getElementById('kpiQtdRegistros').innerText = `${count} lançamento${count !== 1 ? 's' : ''} na base`;
+
+            document.getElementById('kpiRecebido').innerText = formatCurrency(totalRecebido);
+            document.getElementById('badgeRecebido').innerText = formatPercent(percRecebido);
+
+            document.getElementById('kpiGlosado').innerText = formatCurrency(totalGlosado);
+            document.getElementById('badgeGlosa').innerText = formatPercent(percGlosa);
+
+            document.getElementById('kpiEficiencia').innerText = formatPercent(percRecebido);
+            document.getElementById('barEficiencia').style.width = `${Math.min(percRecebido, 100)}%`;
+            document.getElementById('barGlosa').style.width = `${Math.min(percGlosa, 100)}%`;
+        }
+
+        // 2. Render Charts
+        function renderCharts() {
+            renderHospitalChart();
+            renderConvenioChart();
+            renderGlosaRateChart();
+        }
+
+        // Helper to aggregate data by field
+        function aggregateBy(data, key) {
+            const map = {};
+            data.forEach(item => {
+                const groupKey = item[key];
+                if (!map[groupKey]) {
+                    map[groupKey] = { faturado: 0, recebido: 0, glosado: 0 };
+                }
+                map[groupKey].faturado += item.faturado;
+                map[groupKey].recebido += item.recebido;
+                map[groupKey].glosado += item.glosado;
+            });
+            return map;
+        }
+
+        function renderHospitalChart() {
+            const ctx = document.getElementById('chartHospital').getContext('2d');
+            const agg = aggregateBy(filteredData, 'hospital');
+            const labels = Object.keys(agg);
+            const dataFaturado = labels.map(l => agg[l].faturado);
+            const dataRecebido = labels.map(l => agg[l].recebido);
+            const dataGlosado = labels.map(l => agg[l].glosado);
+
+            if (chartHospitalInstance) chartHospitalInstance.destroy();
+
+            chartHospitalInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Faturado',
+                            data: dataFaturado,
+                            backgroundColor: '#0284c7',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Recebido',
+                            data: dataRecebido,
+                            backgroundColor: '#10b981',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Glosado',
+                            data: dataGlosado,
+                            backgroundColor: '#f43f5e',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { family: 'Inter', size: 12 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => ` ${context.dataset.label}: ${formatCurrency(context.raw)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (value) => 'R$ ' + (value / 1000).toFixed(0) + 'k'
+                            },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderConvenioChart() {
+            const ctx = document.getElementById('chartConvenio').getContext('2d');
+            const agg = aggregateBy(filteredData, 'convenio');
+            const labels = Object.keys(agg);
+            const dataFaturado = labels.map(l => agg[l].faturado);
+
+            if (chartConvenioInstance) chartConvenioInstance.destroy();
+
+            chartConvenioInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataFaturado,
+                        backgroundColor: ['#0284c7', '#8b5cf6', '#f59e0b', '#10b981'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 12 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const val = context.raw;
+                                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                    return ` ${context.label}: ${formatCurrency(val)} (${pct}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        function renderGlosaRateChart() {
+            const ctx = document.getElementById('chartGlosaRate').getContext('2d');
+            const agg = aggregateBy(filteredData, 'hospital');
+            const labels = Object.keys(agg);
+            const rates = labels.map(l => {
+                const fat = agg[l].faturado;
+                const glo = agg[l].glosado;
+                return fat > 0 ? parseFloat(((glo / fat) * 100).toFixed(2)) : 0;
+            });
+
+            // Dynamic colors: red for 100%, yellow for partial, green for 0%
+            const backgroundColors = rates.map(r => r === 100 ? '#f43f5e' : (r > 0 ? '#f59e0b' : '#10b981'));
+
+            if (chartGlosaRateInstance) chartGlosaRateInstance.destroy();
+
+            chartGlosaRateInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Taxa de Glosa (%)',
+                        data: rates,
+                        backgroundColor: backgroundColors,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => ` Taxa de Glosa: ${context.raw}%`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            max: 100,
+                            ticks: { callback: (val) => val + '%' },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // 3. Render Table
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            const searchTerm = (document.getElementById('tableSearch')?.value || '').toLowerCase();
+
+            const rowsToDisplay = filteredData.filter(item => {
+                return item.hospital.toLowerCase().includes(searchTerm) ||
+                       item.convenio.toLowerCase().includes(searchTerm) ||
+                       item.id.toString().includes(searchTerm);
+            });
+
+            if (rowsToDisplay.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-8 text-slate-400 font-normal">
+                            Nenhum registro encontrado com os parâmetros atuais.
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('tableSummaryText').innerText = `Exibindo 0 de ${filteredData.length} lançamentos`;
+                return;
+            }
+
+            rowsToDisplay.forEach(item => {
+                const percGlosa = item.faturado > 0 ? (item.glosado / item.faturado) * 100 : 0;
+                
+                let statusBadge = '';
+                if (percGlosa === 0) {
+                    statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                                    Sem Glosa
+                                   </span>`;
+                } else if (percGlosa === 100) {
+                    statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5"></span>
+                                    Glosa Total (100%)
+                                   </span>`;
+                } else {
+                    statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
+                                    Glosa Parcial
+                                   </span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition-colors';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-semibold text-slate-400">#0${item.id}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-800">${item.hospital}</td>
+                    <td class="py-3 px-4">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${item.convenio === 'IPASGO' ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'}">
+                            ${item.convenio}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-right font-medium text-slate-900">${formatCurrency(item.faturado)}</td>
+                    <td class="py-3 px-4 text-right font-medium text-emerald-600">${formatCurrency(item.recebido)}</td>
+                    <td class="py-3 px-4 text-right font-medium ${item.glosado > 0 ? 'text-rose-600' : 'text-slate-400'}">${formatCurrency(item.glosado)}</td>
+                    <td class="py-3 px-4 text-center font-semibold ${percGlosa > 0 ? 'text-rose-600' : 'text-slate-500'}">${formatPercent(percGlosa)}</td>
+                    <td class="py-3 px-4 text-center">${statusBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('tableSummaryText').innerText = `Exibindo ${rowsToDisplay.length} de ${filteredData.length} lançamentos`;
+        }
+
+        function filterTable() {
+            renderTable();
+        }
+
+        function exportData() {
+            const csvRows = [
+                ["ID", "Hospital", "Convenio", "Faturado", "Recebido", "Glosado", "Percentual_Glosa"]
+            ];
+
+            filteredData.forEach(item => {
+                const perc = item.faturado > 0 ? ((item.glosado / item.faturado) * 100).toFixed(2) : 0;
+                csvRows.push([
+                    item.id,
+                    `"${item.hospital}"`,
+                    `"${item.convenio}"`,
+                    item.faturado.toFixed(2),
+                    item.recebido.toFixed(2),
+                    item.glosado.toFixed(2),
+                    `${perc}%`
+                ]);
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "Relatorio_Faturamento_Hospitalar.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
